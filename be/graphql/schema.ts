@@ -1,0 +1,51 @@
+// graphql/schema.ts
+import { gql } from "apollo-server-express";
+
+export const typeDefs = gql`
+    enum Status {
+        todo
+        in_progress
+        done
+    }
+
+    enum Priority {
+        high
+        medium
+        low
+    }
+
+    type Task {
+        id: Int!
+        title: String!
+        description: String
+        status: Status!
+        priority: Priority!
+        createdAt: String!
+        updatedAt: String!
+    }
+
+    input CreateTaskInput {
+        title: String!
+        description: String
+        status: Status!
+        priority: Priority!
+    }
+
+    input UpdateTaskInput {
+        title: String
+        description: String
+        status: Status
+        priority: Priority
+    }
+
+    type Query {
+        tasks: [Task!]!
+        task(id: Int!): Task
+    }
+
+    type Mutation {
+        createTask(input: CreateTaskInput!): Task!
+        updateTask(id: Int!, input: UpdateTaskInput!): Task!
+        deleteTask(id: Int!): Boolean!
+    }
+`;
