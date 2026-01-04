@@ -1,0 +1,23 @@
+query GetTasks {
+  tasks {
+    id
+    title
+    description
+    status
+    priority
+    createdAt
+    updatedAt
+  }
+}
+
+query GetTask($id: Int!) {
+  task(id: $id) {
+    id
+    title
+    description
+    status
+    priority
+    createdAt
+    updatedAt
+  }
+}
