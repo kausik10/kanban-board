@@ -1,28 +1,19 @@
 import "dotenv/config";
 import express from "express";
-import type { Application } from "express";
-import { ApolloServer } from "apollo-server-express";
-import { typeDefs } from "./graphql/schema";
-import { resolvers } from "./graphql/resolvers";
+import { createYoga } from "graphql-yoga";
+import { schema } from "./graphql";
+import { db } from "./lib/db";
+import cors from "cors";
 
-async function startServer() {
-    const app: Application = express();
-    const server = new ApolloServer({
-        typeDefs,
-        resolvers,
-    });
+const app = express();
+app.use(cors());
+const yoga = createYoga({
+    schema,
+    context: () => ({ db }),
+});
 
-    await server.start();
+app.use("/graphql", yoga);
 
-    server.applyMiddleware({ app, path: "/graphql" });
-
-    app.listen({ port: 4000, host: "0.0.0.0" }, () => {
-        console.log(
-            `Server ready at http://localhost:4000${server.graphqlPath}`
-        );
-    });
-}
-
-startServer().catch((err) => {
-    console.error("Failed to start server:", err);
+app.listen(4000, () => {
+    console.log("Server is running on http://localhost:4000/graphql");
 });
