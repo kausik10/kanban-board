@@ -5,6 +5,7 @@ import { schema } from "./graphql";
 import { db } from "./lib/db";
 import cors from "cors";
 
+const PORT = process.env.PORT || 4000;
 const app = express();
 app.use(cors());
 const yoga = createYoga({
@@ -14,6 +15,6 @@ const yoga = createYoga({
 
 app.use("/graphql", yoga);
 
-app.listen(4000, () => {
-    console.log("Server is running on http://localhost:4000/graphql");
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
 });
