@@ -9,6 +9,7 @@ import {
   Priority,
   useUpdateTaskMutation,
   UpdateTaskInput,
+  Task,
 } from '@/graphql/generated'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
@@ -22,6 +23,15 @@ import {
 } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import KanbanCard from '@/components/KanbanCard'
+import {
+  DndContext,
+  DragEndEvent,
+  DragOverlay,
+  DragStartEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core'
 
 const priorityOrder = { high: 3, medium: 2, low: 1 }
 
@@ -32,12 +42,20 @@ function Kanban() {
   const [updateTask] = useUpdateTaskMutation()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [currentStatus, setCurrentStatus] = useState<Status>(Status.Todo)
+  const [activeTask, setActiveTask] = useState<Task | null>(null)
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     priority: Priority.Medium,
   })
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  )
   if (loading) return <div>Loading...</div>
   if (error) return <div>Error: {error.message}</div>
 
@@ -91,6 +109,40 @@ function Kanban() {
     setDialogOpen(true)
   }
 
+  const handleDragStart = (event: DragStartEvent) => {
+    const { active } = event
+    const task = tasks.find((t) => t.id === active.id)
+    if (task) {
+      setActiveTask(task)
+    }
+  }
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event
+
+    setActiveTask(null)
+
+    if (!over) return
+
+    const taskId = active.id as number
+    const newStatus = over.id as Status
+
+    const task = tasks.find((t) => t.id === taskId)
+
+    if (!task || task.status === newStatus) return
+
+    try {
+      await updateTask({
+        variables: {
+          id: taskId,
+          input: { status: newStatus },
+        },
+      })
+      refetch()
+    } catch (err) {
+      console.error('Error updating task status:', err)
+    }
+  }
   const columns: { status: Status; title: string }[] = [
     { status: Status.Todo, title: 'To Do' },
     { status: Status.InProgress, title: 'In Progress' },
@@ -101,19 +153,32 @@ function Kanban() {
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-6">Kanban Board</h1>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[calc(100vh-12rem)]">
-        {columns.map(({ status, title }) => {
-          const columnTasks = sortedTasks(status)
-          return (
-            <KanbanCard
-              key={status}
-              title={title}
-              tasks={columnTasks}
-              onAddTask={() => openDialog(status)}
-              onDeleteTask={handleDeleteTask}
-              onUpdateTask={handleUpdateTask}
-            />
-          )
-        })}
+        <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+          {columns.map(({ status, title }) => {
+            const columnTasks = sortedTasks(status)
+            return (
+              <KanbanCard
+                key={status}
+                status={status}
+                title={title}
+                tasks={columnTasks}
+                onAddTask={() => openDialog(status)}
+                onDeleteTask={handleDeleteTask}
+                onUpdateTask={handleUpdateTask}
+              />
+            )
+          })}
+
+          <DragOverlay>
+            {activeTask ? (
+              <div className="rotate-0 cursor-grabbing">
+                <div className="shadow-lg p-4 rounded-lg border-2 border-blue-400 max-w-sm">
+                  <h3 className="font-semibold">{activeTask.title}</h3>
+                </div>
+              </div>
+            ) : null}
+          </DragOverlay>
+        </DndContext>
       </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

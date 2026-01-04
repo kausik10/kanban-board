@@ -12,6 +12,7 @@ import { Task, Priority, UpdateTaskInput } from '@/graphql/generated'
 import { Input } from './ui/input'
 import { Textarea } from './ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
+import { useDraggable } from '@dnd-kit/core'
 
 interface TaskCardProps {
   task: Task
@@ -34,6 +35,17 @@ export default function TaskCard({ task, onDelete, onUpdate }: TaskCardProps) {
     priority: task.priority,
   })
 
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: task.id,
+  })
+
+  const style = transform
+    ? {
+        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+        opacity: isDragging ? 0.6 : 1,
+      }
+    : undefined
+
   const handleUpdate = () => {
     const input: UpdateTaskInput = {
       ...(formData.title !== task.title && { title: formData.title }),
@@ -52,35 +64,42 @@ export default function TaskCard({ task, onDelete, onUpdate }: TaskCardProps) {
 
   return (
     <>
-      <Card>
-        <CardContent className="">
-          <div className="flex justify-between items-start mb-2">
-            <h3 className="font-semibold text-sm">{task.title}</h3>
-            <span className={`text-xs font-medium ${priorityColors[task.priority]}`}>
-              {task.priority.toUpperCase()}
-            </span>
-          </div>
-          {task.description && <p className="text-sm text-gray-600 mb-3">{task.description}</p>}
-          <Button variant="destructive" size="sm" onClick={() => setDialogOpen(true)} className="">
-            Delete
-          </Button>
-          <Button
-            variant={'default'}
-            size="sm"
-            onClick={() => {
-              setFormData({
-                title: task.title,
-                description: task.description || '',
-                priority: task.priority,
-              })
-              setEditDialogOpen(true)
-            }}
-            className="ml-2"
-          >
-            Edit
-          </Button>
-        </CardContent>
-      </Card>
+      <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
+        <Card>
+          <CardContent className="">
+            <div className="flex justify-between items-start mb-2">
+              <h3 className="font-semibold text-sm">{task.title}</h3>
+              <span className={`text-xs font-medium ${priorityColors[task.priority]}`}>
+                {task.priority.toUpperCase()}
+              </span>
+            </div>
+            {task.description && <p className="text-sm text-gray-600 mb-3">{task.description}</p>}
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => setDialogOpen(true)}
+              className=""
+            >
+              Delete
+            </Button>
+            <Button
+              variant={'default'}
+              size="sm"
+              onClick={() => {
+                setFormData({
+                  title: task.title,
+                  description: task.description || '',
+                  priority: task.priority,
+                })
+                setEditDialogOpen(true)
+              }}
+              className="ml-2"
+            >
+              Edit
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
 
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
         <DialogContent>
