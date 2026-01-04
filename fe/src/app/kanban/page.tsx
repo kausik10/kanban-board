@@ -1,6 +1,6 @@
 'use client'
 
-import { useGetTasksQuery } from '../../graphql/generated'
+import { useGetTasksQuery } from '@/graphql/generated'
 
 function Kanban() {
   const { data, loading, error } = useGetTasksQuery()
